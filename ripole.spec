@@ -4,7 +4,7 @@
 Summary:	Extracts attachments out of mailpack format emails
 Name:		ripole
 Version:	0.2.0
-Release:	%mkrel 4
+Release:	%mkrel 5
 License:	BSD
 Group:		Networking/Mail
 URL:		http://www.pldaniels.com/ripole/
@@ -15,20 +15,20 @@ BuildRequires:	libtool
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
-ripOLE is a small program/library designed to pull out attachments
-from OLE2 data files (ie, MS Office documents).  ripOLE is BSD
-licenced meaning that commercial projects can also use the code
-without worry of licence costs or legal liabilities. 
+ripOLE is a small program/library designed to pull out attachments from OLE2
+data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
+commercial projects can also use the code without worry of licence costs or
+legal liabilities. 
 
 %package -n	%{libname}
 Summary:	Shared %{name} library
 Group:          System/Libraries
 
 %description -n	%{libname}
-ripOLE is a small program/library designed to pull out attachments
-from OLE2 data files (ie, MS Office documents).  ripOLE is BSD
-licenced meaning that commercial projects can also use the code
-without worry of licence costs or legal liabilities. 
+ripOLE is a small program/library designed to pull out attachments from OLE2
+data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
+commercial projects can also use the code without worry of licence costs or
+legal liabilities. 
 
 %package -n	%{libname}-devel
 Summary:	Development files for the %{name} library
@@ -38,10 +38,12 @@ Provides:	lib%{name}-devel
 Requires:	%{libname} = %{version}
 
 %description -n	%{libname}-devel
-ripOLE is a small program/library designed to pull out attachments
-from OLE2 data files (ie, MS Office documents).  ripOLE is BSD
-licenced meaning that commercial projects can also use the code
-without worry of licence costs or legal liabilities. 
+ripOLE is a small program/library designed to pull out attachments from OLE2
+data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
+commercial projects can also use the code without worry of licence costs or
+legal liabilities. 
+
+This package contains the development files for ripOLE.
 
 %prep
 
@@ -50,8 +52,11 @@ without worry of licence costs or legal liabilities.
 %patch1 -p1
 
 %build
+%serverbuild
 
-%make libdir=%{_libdir}
+%make \
+CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
+    libdir=%{_libdir}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
@@ -85,5 +90,3 @@ without worry of licence costs or legal liabilities.
 %{_libdir}/*.so
 %{_libdir}/*.a
 %{_libdir}/*.la
-
-
