@@ -1,5 +1,6 @@
 %define	major 0
-%define libname	%mklibname ripole %{major}
+%define libname %mklibname ripole %{major}
+%define develname %mklibname ripole -d
 
 Summary:	Extracts attachments out of mailpack format emails
 Name:		ripole
@@ -30,14 +31,15 @@ data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
 commercial projects can also use the code without worry of licence costs or
 legal liabilities. 
 
-%package -n	%{libname}-devel
+%package -n	%{develname}
 Summary:	Development files for the %{name} library
 Group:		Development/C
 Provides:	%{name}-devel
 Provides:	lib%{name}-devel
 Requires:	%{libname} = %{version}
+Obsoletes:	%{mklibname ripole 0 -d}
 
-%description -n	%{libname}-devel
+%description -n	%{develname}
 ripOLE is a small program/library designed to pull out attachments from OLE2
 data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
 commercial projects can also use the code without worry of licence costs or
@@ -82,7 +84,7 @@ CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
 %defattr(-,root,root)
 %{_libdir}/*.so.*
 
-%files -n %{libname}-devel
+%files -n %{develname}
 %defattr(-,root,root)
 %doc TODO
 %dir %{_includedir}/%{name}
