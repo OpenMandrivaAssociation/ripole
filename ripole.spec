@@ -13,6 +13,7 @@ Source0:	http://www.pldaniels.com/ripole/%{name}-%{version}.tar.bz2
 Patch0:		ripole-0.1.4-shared.diff
 Patch1:		ripole-0.2.0-dev.diff
 BuildRequires:	libtool
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
 ripOLE is a small program/library designed to pull out attachments from OLE2
