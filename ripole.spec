@@ -5,7 +5,7 @@
 Summary:	Extracts attachments out of mailpack format emails
 Name:		ripole
 Version:	0.2.0
-Release:	%mkrel 9
+Release:	%mkrel 10
 License:	BSD
 Group:		Networking/Mail
 URL:		http://www.pldaniels.com/ripole/
@@ -58,10 +58,10 @@ This package contains the development files for ripOLE.
 
 %make \
 CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
-    libdir=%{_libdir}
+    libdir=%{_libdir} LDFLAGS="-Wl,--as-needed -Wl,--no-undefined"
 
 %install
-[ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+rm -rf %{buildroot}
 
 %makeinstall_std \
     bindir=%{_bindir} \
@@ -77,7 +77,7 @@ CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
 %endif
 
 %clean
-[ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
