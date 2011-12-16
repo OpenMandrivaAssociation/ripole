@@ -34,7 +34,7 @@ Summary:	Development files for the %{name} library
 Group:		Development/C
 Provides:	%{name}-devel
 Provides:	lib%{name}-devel
-Requires:	%{libname} = %{version}
+Requires:	%{libname} >= %{version}
 Obsoletes:	%{mklibname ripole 0 -d}
 
 %description -n	%{develname}
@@ -52,17 +52,19 @@ This package contains the development files for ripOLE.
 
 %build
 %serverbuild
-export LDFLAGS="`rpm --eval %%configure|grep LDFLAGS|cut -d\\" -f2|sed -e 's/\$LDFLAGS\ //'`"
 
 %make \
 CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
-    libdir=%{_libdir} LDFLAGS="$LDFLAGS"
+    libdir=%{_libdir} LDFLAGS="%{ldflags}"
 
 %install
 %makeinstall_std \
     bindir=%{_bindir} \
     libdir=%{_libdir} \
     includedir=%{_includedir}
+
+# cleanups
+rm -f %{buildroot}% {_libdir}/*.*a
 
 %files
 %doc CHANGELOG CONTRIBUTORS INSTALL LICENSE README
@@ -76,5 +78,3 @@ CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
 %dir %{_includedir}/%{name}
 %{_includedir}/%{name}/*
 %{_libdir}/*.so
-%{_libdir}/*.a
-#% {_libdir}/*.la
