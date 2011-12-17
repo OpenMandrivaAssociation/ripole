@@ -64,7 +64,7 @@ CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
     includedir=%{_includedir}
 
 # cleanups
-rm -f %{buildroot}% {_libdir}/*.*a
+rm -f %{buildroot}%{_libdir}/*.*a
 
 %files
 %doc CHANGELOG CONTRIBUTORS INSTALL LICENSE README
