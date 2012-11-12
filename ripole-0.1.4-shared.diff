@@ -1,0 +1,61 @@
+diff --git a/Makefile b/Makefile
+index d59b8a5..cbcf785 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,18 +1,43 @@
++CFLAGS=-Wall -g -O2 -I. -fPIC -DPIC -D_REENTRANT
++CC=gcc
++bindir = /usr/bin
++libdir = /usr/lib
++includedir = /usr/include
++DESTDIR = 
+ 
+-OBJS= ole.o olestream-unwrap.o bytedecoders.o logger.o pldstr.o bt-int.o
+-CFLAGS=-Wall -g -O2 -I. -Werror
++AR = ar
++RANLIB = ranlib
++LIBTOOL = libtool
++INSTALL = install -c
++LDFLAGS = 
+ 
++LT_CURRENT=1
++LT_REVISION=4
++LT_AGE=1
+ 
+-.c.o:
+-	$(CC) $(CFLAGS) $(DEFINES) -c $*.c
++OBJS=ole.o olestream-unwrap.o bytedecoders.o logger.o pldstr.o bt-int.o
++LTOBJS:= $(OBJS:.o=.lo)
+ 
+-default: ripole
+-
+-clean:
+-	rm -f *.o ripole
+-
+-ripole: $(OBJS) ripole.[ch]
+-		$(CC) $(CFLAGS) $(OBJS) $(DEFINES) ripole.c -o ripole
++all: libripole.la ripole
++	
++libripole.la: $(LTOBJS)
++	       $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) -rpath $(libdir) \
++		       -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) -o \
++		       libripole.la $(LTOBJS)
++	
++ripole: ripole.o libripole.la
++	       $(LIBTOOL) --mode=link $(CC) $(CFLAGS) -o $@ $(LDFLAGS) $^
++	
++%.o: %.c
++	       $(CC) -c $(CFLAGS) $< -o $@
++	
++%.lo: %.c
++	       $(LIBTOOL) --mode=compile $(CC) -c $(CFLAGS) $< -o $@
+ 	
+-validate: ripole
+-		cp ripole validate
++install:
++	       $(INSTALL) -d $(DESTDIR)$(bindir)
++	       $(INSTALL) -d $(DESTDIR)$(libdir)
++	       $(INSTALL) -d $(DESTDIR)$(includedir)/ripole
++	       $(LIBTOOL) --mode=install $(INSTALL) libripole.la $(DESTDIR)$(libdir)
++	       $(LIBTOOL) --mode=install $(INSTALL) -m 755 ripole $(DESTDIR)$(bindir)
++	       $(INSTALL) -m 644 ole.h $(DESTDIR)$(includedir)/ripole
