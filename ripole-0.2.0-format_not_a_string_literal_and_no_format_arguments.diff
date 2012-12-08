@@ -1,0 +1,11 @@
+--- logger.c	2005-12-12 04:06:21.000000000 +0100
++++ logger.c.oden	2008-12-19 15:24:32.000000000 +0100
+@@ -320,7 +320,7 @@ int LOGGER_log( char *format, ...)
+ 			fprintf(stderr,"%s%s",output, lineend );
+ 			break;
+ 		case _LOGGER_SYSLOG:
+-			syslog(_LOGGER_syslog_mode,output);
++			syslog(_LOGGER_syslog_mode, "%s",output);
+ 			break;
+ 		case _LOGGER_STDOUT:
+ 			fprintf(stdout,"%s%s",output, lineend);

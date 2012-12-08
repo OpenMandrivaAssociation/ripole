@@ -1,0 +1,277 @@
+diff -Naur ripole-0.2.0/CHANGELOG ripole-0.2-dev/CHANGELOG
+--- ripole-0.2.0/CHANGELOG	2005-12-12 04:06:21.000000000 +0100
++++ ripole-0.2-dev/CHANGELOG	2005-12-31 02:04:04.000000000 +0100
+@@ -1,5 +1,26 @@
+ 
+ -----------------------------------ripOLE---------------------
++20051231-1055:PLD:
++	---Development update
++	Improved the image signature detection routines to allow for
++	variable length signatures and possible non-zero offsets.
++	Signatures are now stored as an array of struct typesig.
++
++	It could be possible to use an external filetype signature
++	library to do this process but because we're only wanting to
++	seek out images and of very few formats it simply isn't 
++	worth the overheads or speed penalty (we don't want to have 
++			to search through 200 bytes looking for up to 1000 
++			different filetypes).
++
++20051224-1030:PLD:
++	---Development update
++	Added primative image detection routines to pull out PNG
++	or JPG encoded data from an Escher formatted stream.  The
++	Escher format is rather complex so for now instead of trying
++	to decode it properly we just scan ahead in the data a short
++	distance to look for specific PNG or JPG signatures.
++
+ 20051212-1100:PLD:
+ 	---Version 0.2.0 RELEASE
+ 	Fixed up OLE Stream decoding - attachments now come out with
+diff -Naur ripole-0.2.0/olestream-unwrap.c ripole-0.2-dev/olestream-unwrap.c
+--- ripole-0.2.0/olestream-unwrap.c	2005-12-12 04:06:21.000000000 +0100
++++ ripole-0.2-dev/olestream-unwrap.c	2005-12-31 02:04:04.000000000 +0100
+@@ -23,6 +23,18 @@
+ 	size_t attach_start_offset;
+ };
+ 
++struct ESCHER_header_fixed {
++	int spid_max;
++	size_t cidcl;
++	size_t cspsaved;
++	size_t cdgsaved;
++};
++
++struct typesig {
++	char *sequence;
++	int length;
++	int offset;
++};
+ 
+ 
+ /*-----------------------------------------------------------------\
+@@ -196,6 +208,9 @@
+ \------------------------------------------------------------------*/
+ int OLEUNWRAP_sanitize_filename( char *fname )
+ {
++
++	if (fname == NULL) return 0;
++
+ 		while (*fname)
+ 		{
+ 			if( !isalnum((int)*fname) && (*fname != '.') ) *fname='_';
+@@ -206,6 +221,79 @@
+ }
+ 
+ /*-----------------------------------------------------------------\
++ Function Name	: OLEUNWRAP_seach_for_file_sig
++ Returns Type	: int
++ 	----Parameter List
++	1. char *block , 
++ 	------------------
++ Exit Codes	:  Returns the offset from the block to the 
++					start of the signature.
++					Returns -1 if not found.
++
++ Side Effects	: 
++--------------------------------------------------------------------
++ Comments:
++ 
++--------------------------------------------------------------------
++ Changes:
++ 
++\------------------------------------------------------------------*/
++int OLEUNWRAP_seach_for_file_sig( struct OLEUNWRAP_object *oleuw, char *block, size_t block_len )
++{
++	int result = -1;
++	int hit = 0;
++	char *p;		/** signature pointer **/
++	char *bp; /** pointer in the block **/
++	struct typesig sigs[]= {
++		{ "\x89\x50\x4e\x47", 4, 0 }, /** PNG **/
++		{ "\xff\xd8\xff", 3, 0 }, /** JPEG **/
++		{ NULL, -1, -1 } /** End of array **/
++	};
++
++	bp = block;
++	block_len -= 4;
++
++	/** While there's more data in the block and we're not found a match **/
++	while ((block_len > 0)&&(hit==0)) {
++		struct typesig *tsp; /** Type signature pointer **/
++
++		block_len--;
++
++		tsp = sigs; /** tsp points to the first signature in the array **/
++
++		/** While there's more valid signatures in the array **/
++		while (tsp->length > 0) {
++			int cmpresult = 0;
++
++			p = tsp->sequence; /** set p to point to the start of the image signature sequence **/
++			cmpresult = memcmp(bp, p, 3);
++			if (cmpresult == 0) {
++				DUW LOGGER_log("%s:%d:OLEUNWRAP_seach_for_file_sig:DEBUG: Hit at offset %d for signature %d",FL,(bp-block),(tsp -sigs));
++				hit = 1;
++				break;
++			} /** If we had a match in the signatures **/
++
++			tsp++; /** go to the next signature **/
++
++		} /** While more signatures **/
++
++		if (hit == 0) bp++; /** If we didn't get a hit, move to the next byte in the file **/
++
++	} /** while more data in the block **/
++
++	if (hit == 1) {
++		result =  bp -block;
++	} else { 
++		result = -1;
++	}
++
++	return result;
++}
++
++
++
++	/** Look for PNG signature **/
++/*-----------------------------------------------------------------\
+  Function Name	: OLEUNWRAP_decode_attachment
+  Returns Type	: int
+  	----Parameter List
+@@ -231,7 +319,7 @@
+ 	oh.attach_size_1 = (size_t)get_4byte_value( sp );
+ 	sp += 4;
+ 
+-	DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: attachsize = %d, stream length = %d\n", FL, oh.attach_size_1, stream_size );
++	DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: attachsize = %d [ 0x%x ], stream length = %d [ 0x%x] \n", FL, oh.attach_size_1, oh.attach_size_1, stream_size, stream_size );
+ 
+ 	oh.attach_start_offset = (stream_size -oh.attach_size_1);
+ 	data_start_point = stream +oh.attach_start_offset;
+@@ -239,10 +327,66 @@
+ 	//if (oh.attach_start_offset == 4)
+ 	if (oh.attach_start_offset < 4)
+ 	{
++		int cbheader; // number of bytes in PIC
++		int mfpmm;
++		int mfpxext;
++		int mfpyext;
++		int mfphmf;
++			
++		// check next 4 bytes.
++
++		cbheader = get_2byte_value( sp );
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: cbHeader = %d [ 0x%x ]", FL, cbheader, cbheader);
++		mfpmm = get_2byte_value( sp +2 );
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: mfp.mm = %d [ 0x%x ]", FL, mfpmm, mfpmm);
++		mfpxext = get_2byte_value( sp +4 );
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: mfp.xext = %d [ 0x%x ]", FL, mfpxext, mfpxext);
++		mfpyext = get_2byte_value( sp +8 );
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: mfp.yext = %d [ 0x%x ]", FL, mfpyext, mfpyext);
++		mfphmf = get_2byte_value( sp +10 );
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: mfp.hmf = %d [ 0x%x ]", FL, mfphmf, mfphmf);
+ 		// If we only had the stream byte-lenght in our header
+ 		//		then we know we don't have a complex header.
+-		oh.attach_name = PLD_dprintf("unknown-%ld",oh.attach_size_1);
++		 
++		DUW {
++		switch (mfpmm) {
++			case 100:
++				LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Image is Escher format",FL);
++				break;
++			case 99:
++				LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Image is Bitmapped",FL);
++				break;
++			case 98:
++				LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Image is TIFF",FL);
++				break;
++			default:
++				LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Unknown image type for code '%d'",FL, mfpmm);
++		}
++		}
++
++		data_start_point = sp +cbheader -4;
++
++		
++		if (mfpmm == 100) {
++			int imageoffset = 0;
++			int search_size = 500;
++
++			DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: searcing for image signatures",FL);
++			if (stream_size < (search_size +68)) search_size = (stream_size -69); /** just make sure we don't over-search the stream **/
++
++			imageoffset = OLEUNWRAP_seach_for_file_sig(oleuw, data_start_point, search_size);
++			if (imageoffset >= 0) {
++				DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Image data found at offset %d",FL,imageoffset);
++				data_start_point += imageoffset;
++			} else {
++				DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Could not detect image signature, dumping whole stream",FL);
++			}
++		}
++			
++		oh.attach_name = PLD_dprintf("image-%ld",oh.attach_size_1);
+ 		oh.attach_size = oh.attach_size_1;
++		oh.fname_1 = oh.fname_2 = NULL;
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Setting attachment name to '%s', size = %d",FL,oh.attach_name, oh.attach_size);
+ 	} else {
+ 
+ 		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Decoding file information header",FL);
+@@ -283,10 +427,12 @@
+ 	OLEUNWRAP_sanitize_filename(oh.fname_1);
+ 	OLEUNWRAP_sanitize_filename(oh.fname_2);
+ 
++	DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Sanitized attachment filenames",FL);
++
+ 	result = OLEUNWRAP_save_stream( oleuw, oh.attach_name, decode_path, data_start_point, oh.attach_size );
+ 	if (result == OLEUW_OK)
+ 	{
+-		if (oleuw->debug > 0) LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Calling reporter for the filename",FL);
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Calling reporter for the filename",FL);
+ 		if ((oleuw->verbose > 0)&&(oleuw->filename_report_fn != NULL))
+ 		{
+ 			oleuw->filename_report_fn(oh.attach_name);
+@@ -294,11 +440,13 @@
+ 		// Do call back to reporting function
+ 	}
+ 
++	DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Cleaning up",FL);
+ 	// Clean up our previously allocated data
+ 	if (oh.fname_1 != NULL) free(oh.fname_1);
+ 	if (oh.attach_name != NULL) free(oh.attach_name);
+ 	if (oh.fname_2 != NULL) free(oh.fname_2);
+ 	
++	DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: done.",FL);
+ 	return OLEUW_OK;
+ }
+ 
+@@ -324,10 +472,17 @@
+ 
+ 	if (strstr(element_string, OLEUW_ELEMENT_10NATIVE_STRING) != NULL) 
+ 	{
++		
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decodestream:DEBUG: Debugging element '%s'",FL, element_string);
++		OLEUNWRAP_decode_attachment( oleuw, stream, stream_size, decode_path );
++
++	} else if (strstr(element_string, OLEUW_ELEMENT_DATA) != NULL)  {
++
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decodestream:DEBUG: Debugging element '%s'",FL, element_string);
+ 		OLEUNWRAP_decode_attachment( oleuw, stream, stream_size, decode_path );
+ 
+ 	} else {
+-		if (oleuw->debug) LOGGER_log("Unable to decode stream with element string '%s'\n", element_string);
++		DUW LOGGER_log("%s:%d:OLEUNWRAP_decode_attachment:DEBUG: Unable to decode stream with element string '%s'\n", FL, element_string);
+ 		result = OLEUW_STREAM_NOT_DECODED;
+ 	}
+ 
+diff -Naur ripole-0.2.0/olestream-unwrap.h ripole-0.2-dev/olestream-unwrap.h
+--- ripole-0.2.0/olestream-unwrap.h	2005-12-12 04:06:21.000000000 +0100
++++ ripole-0.2-dev/olestream-unwrap.h	2005-12-31 02:04:04.000000000 +0100
+@@ -1,6 +1,7 @@
+ 
+ #define OLEUW_ELEMENT_10NATIVE 10
+ #define OLEUW_ELEMENT_10NATIVE_STRING "Ole10Native"
++#define OLEUW_ELEMENT_DATA "Data"
+ 
+ #define OLEUW_OK 0
+ #define OLEUW_STREAM_NOT_DECODED 100
