@@ -56,7 +56,7 @@ This package contains the development files for ripOLE.
 %patch2 -p0
 
 %build
-%serverbuild LIBTOOL='/usr/bin/libtool --tag=CC'
+%serverbuild 
 export LDFLAGS="`rpm --eval %%configure|grep LDFLAGS|cut -d\\" -f2|sed -e 's/\$LDFLAGS\ //'`"
 
 %make \

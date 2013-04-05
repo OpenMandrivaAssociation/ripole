@@ -19,7 +19,7 @@
 +
 +AR = ar
 +RANLIB = ranlib
-+LIBTOOL = libtool
++LIBTOOL = libtool --tag=CC
 +INSTALL = install -c
 +LDFLAGS = 
 +
