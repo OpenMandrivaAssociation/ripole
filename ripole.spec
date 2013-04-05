@@ -5,7 +5,7 @@
 Summary:	Extracts attachments out of mailpack format emails
 Name:		ripole
 Version:	0.2.0
-Release:	%mkrel 17
+Release:	18
 License:	BSD
 Group:		Networking/Mail
 URL:		http://www.pldaniels.com/ripole/
@@ -56,7 +56,7 @@ This package contains the development files for ripOLE.
 %patch2 -p0
 
 %build
-%serverbuild
+%serverbuild LIBTOOL='/usr/bin/libtool --tag=CC'
 export LDFLAGS="`rpm --eval %%configure|grep LDFLAGS|cut -d\\" -f2|sed -e 's/\$LDFLAGS\ //'`"
 
 %make \
