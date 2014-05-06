@@ -1,4 +1,4 @@
-%define	major 0
+%define major 0
 %define libname %mklibname ripole %{major}
 %define devname %mklibname ripole -d
 
@@ -18,7 +18,13 @@ Patch2:		ripole-0.2.0-format_not_a_string_literal_and_no_format_arguments.diff
 ripOLE is a small program/library designed to pull out attachments from OLE2
 data files (ie, MS Office documents). ripOLE is BSD licenced meaning that
 commercial projects can also use the code without worry of licence costs or
-legal liabilities. 
+legal liabilities.
+
+%files
+%doc CHANGELOG CONTRIBUTORS LICENSE README
+%{_bindir}/*
+
+#----------------------------------------------------------------------------
 
 %package -n	%{libname}
 Summary:	Shared %{name} library
@@ -27,14 +33,27 @@ Group:		System/Libraries
 %description -n	%{libname}
 This package contains the shared library for ripOLE.
 
-%package -n	%{devname}
+%files -n %{libname}
+%{_libdir}/libripole.so.%{major}*
+
+#----------------------------------------------------------------------------
+
+%package -n %{devname}
 Summary:	Development files for the %{name} library
 Group:		Development/C
-Provides:	%{name}-devel = %{version}-%{release}
-Requires:	%{libname} = %{version}-%{release}
+Provides:	%{name}-devel = %{EVRD}
+Requires:	%{libname} = %{EVRD}
 
-%description -n	%{devname}
+%description -n %{devname}
 This package contains the development files for ripOLE.
+
+%files -n %{devname}
+%doc TODO
+%dir %{_includedir}/%{name}
+%{_includedir}/%{name}/*
+%{_libdir}/*.so
+
+#----------------------------------------------------------------------------
 
 %prep
 %setup -q
@@ -43,12 +62,12 @@ This package contains the development files for ripOLE.
 %patch2 -p0
 
 %build
-%serverbuild 
-export LDFLAGS="`rpm --eval %%configure|grep LDFLAGS|cut -d\\" -f2|sed -e 's/\$LDFLAGS\ //'`"
+%serverbuild
 
 %make \
-	CFLAGS="$CFLAGS -I. -fPIC -DPIC -D_REENTRANT" \
-	libdir=%{_libdir} LDFLAGS="$LDFLAGS"
+	CFLAGS="%{optflags} -I. -fPIC -DPIC -D_REENTRANT" \
+	libdir=%{_libdir} \
+	LDFLAGS="%{ldflags}"
 
 %install
 
@@ -56,17 +75,4 @@ export LDFLAGS="`rpm --eval %%configure|grep LDFLAGS|cut -d\\" -f2|sed -e 's/\$L
 	bindir=%{_bindir} \
 	libdir=%{_libdir} \
 	includedir=%{_includedir}
-
-%files
-%doc CHANGELOG CONTRIBUTORS INSTALL LICENSE README
-%{_bindir}/*
-
-%files -n %{libname}
-%{_libdir}/libripole.so.%{major}*
-
-%files -n %{devname}
-%doc TODO
-%dir %{_includedir}/%{name}
-%{_includedir}/%{name}/*
-%{_libdir}/*.so
 
