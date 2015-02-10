@@ -64,7 +64,7 @@ This package contains the development files for ripOLE.
 %build
 %serverbuild
 
-%make \
+%make -j1 \
 	CFLAGS="%{optflags} -I. -fPIC -DPIC -D_REENTRANT" \
 	libdir=%{_libdir} \
 	LDFLAGS="%{ldflags}"
