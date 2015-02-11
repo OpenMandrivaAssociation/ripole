@@ -13,6 +13,7 @@ Source0:	http://www.pldaniels.com/ripole/%{name}-%{version}.tar.bz2
 Patch0:		ripole-0.1.4-shared.diff
 Patch1:		ripole-0.2.0-dev.diff
 Patch2:		ripole-0.2.0-format_not_a_string_literal_and_no_format_arguments.diff
+BuildRequires:	libtool
 
 %description
 ripOLE is a small program/library designed to pull out attachments from OLE2
