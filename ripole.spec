@@ -1,6 +1,7 @@
 %define major 0
 %define libname %mklibname ripole %{major}
 %define devname %mklibname ripole -d
+%define _disable_lto 1
 
 Summary:	Extracts attachments out of mailpack format emails
 Name:		ripole
