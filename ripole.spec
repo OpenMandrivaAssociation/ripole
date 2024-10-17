@@ -9,7 +9,7 @@ Version:	0.2.0
 Release:	30
 License:	BSD
 Group:		Networking/Mail
-Url:		http://www.pldaniels.com/ripole/
+Url:		https://www.pldaniels.com/ripole/
 Source0:	http://www.pldaniels.com/ripole/%{name}-%{version}.tar.bz2
 Patch0:		ripole-0.1.4-shared.diff
 Patch1:		ripole-0.2.0-dev.diff
